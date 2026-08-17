@@ -1,0 +1,18 @@
+{
+  "tam": {
+    "username": "your-username",
+    "password_file": "/etc/tam-scraper/tam-password",
+    "id": "2098",
+    "id_is_class": true,
+    "school": "krm"
+  },
+  "caldav": {
+    "calendar_url": "https://calendar.example/username/timetable/",
+    "username": "calendar-username",
+    "password_file": "/etc/tam-scraper/caldav-password"
+  },
+  "sync": {
+    "weeks_past": 2,
+    "weeks_future": 12
+  }
+}
