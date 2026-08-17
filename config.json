@@ -1,14 +1,14 @@
 {
 	"tam": {
-		"username": "julius.langhoff",
+		"username": "user.name",
 		"password_file": "/tmp/tam-password",
-		"id": "4016651",
+		"id": "2216851",
 		"id_is_class": false,
 		"school": "krm"
 	},
 	"caldav": {
-		"calendar_url": "https://radicale.jul/jul/stundenplan/",
-		"username": "jul",
+		"calendar_url": "https://radicale.domain/user/timetable/",
+		"username": "user",
 		"password_file": "/tmp/caldav-password"
 	},
 	"sync": {
