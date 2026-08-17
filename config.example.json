@@ -2,8 +2,8 @@
   "tam": {
     "username": "your-username",
     "password_file": "/etc/tam-scraper/tam-password",
-    "id": "2098",
-    "id_is_class": true,
+    "id": "4016651",
+    "id_is_class": false,
     "school": "krm"
   },
   "caldav": {

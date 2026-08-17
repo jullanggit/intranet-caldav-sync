@@ -115,9 +115,9 @@ impl Tam {
             ];
             let id = self.config.tam.id.as_str();
             request.push(if self.config.tam.id_is_class {
-                ("classId", id)
+                ("classId[]", id)
             } else {
-                ("studentId", id)
+                ("studentId[]", id)
             });
             let response = self
                 .client
