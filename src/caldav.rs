@@ -6,7 +6,6 @@ use chrono_tz::Europe::Zurich;
 use icalendar::{Calendar, Component, Event, EventLike, EventStatus};
 use reqwest::{Client, Method};
 use std::collections::HashSet;
-use std::fs;
 
 pub struct CalDav {
     client: Client,
@@ -17,19 +16,10 @@ pub struct CalDav {
 
 impl CalDav {
     pub fn new(config: &Config) -> Result<Self> {
-        let mut client = Client::builder().timeout(std::time::Duration::from_secs(30));
-        if let Some(path) = &config.caldav.ca_certificate_file {
-            let certificate = fs::read(path)
-                .with_context(|| format!("cannot read CalDAV CA certificate {}", path.display()))?;
-            let certificate = reqwest::Certificate::from_pem(&certificate)
-                .or_else(|_| reqwest::Certificate::from_der(&certificate))
-                .with_context(|| {
-                    format!("cannot parse CalDAV CA certificate {}", path.display())
-                })?;
-            client = client.add_root_certificate(certificate);
-        }
         Ok(Self {
-            client: client.build()?,
+            client: Client::builder()
+                .timeout(std::time::Duration::from_secs(30))
+                .build()?,
             url: config.caldav.calendar_url.trim_end_matches('/').to_owned(),
             username: config.caldav.username.clone(),
             password: config::secret(&config.caldav.password_file)?,
@@ -125,6 +115,12 @@ fn event_calendar(lesson: &Lesson) -> Result<Calendar> {
         (Some(subject), None) => subject.to_owned(),
         (None, Some(room)) => room.to_owned(),
         (None, None) => lesson.title.clone(),
+    };
+    let summary = match (lesson.cancelled, lesson.exam) {
+        (true, true) => format!("CANCELLED EXAM: {summary}"),
+        (true, false) => format!("CANCELLED: {summary}"),
+        (false, true) => format!("EXAM: {summary}"),
+        (false, false) => summary,
     };
     let description = [
         (!lesson.teacher.is_empty()).then(|| format!("Teacher: {}", lesson.teacher.join(", "))),

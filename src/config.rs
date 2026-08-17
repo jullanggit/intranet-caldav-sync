@@ -31,8 +31,6 @@ pub struct CalDavConfig {
     pub calendar_url: String,
     pub username: String,
     pub password_file: PathBuf,
-    #[serde(default)]
-    pub ca_certificate_file: Option<PathBuf>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
