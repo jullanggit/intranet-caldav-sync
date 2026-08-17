@@ -3,7 +3,7 @@ use crate::{config, tam::Lesson};
 use anyhow::{Context, Result, bail};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Europe::Zurich;
-use icalendar::{Calendar, Component, Event, EventLike, EventStatus};
+use icalendar::{Calendar, Component, Event, EventLike, EventStatus, Property};
 use reqwest::{Client, Method};
 use std::collections::HashSet;
 
@@ -145,6 +145,16 @@ fn event_calendar(lesson: &Lesson) -> Result<Calendar> {
     }
     if lesson.cancelled {
         event.status(EventStatus::Cancelled);
+    }
+    let color = if lesson.cancelled {
+        Some("red")
+    } else if lesson.exam {
+        Some("orange")
+    } else {
+        None
+    };
+    if let Some(color) = color {
+        event.append_property(Property::new("COLOR", color));
     }
     Ok(Calendar::from(event.done()))
 }
