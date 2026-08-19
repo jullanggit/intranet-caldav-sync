@@ -1,0 +1,22 @@
+{
+  "tam": {
+    "username": "julius.langhoff",
+    "password_file": "/tmp/intranet-password",
+    "id": "4016651",
+    "id_is_class": false,
+    "school": "krm"
+  },
+  "caldav": {
+    "enable": true,
+    "calendar_url": "https://radicale.jul/jul/stundenplan/",
+    "username": "jul",
+    "password_file": "/tmp/radicale-password"
+  },
+  "ics": {
+    "enable": false
+  },
+  "sync": {
+    "weeks_past": 2,
+    "weeks_future": 15
+  }
+}
