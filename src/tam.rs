@@ -1,5 +1,5 @@
 use crate::config::{self, Config};
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use chrono::{NaiveDate, NaiveTime};
 use reqwest::Client;
 use scraper::{Html, Selector};
@@ -18,6 +18,7 @@ pub struct Lesson {
     pub entry_type: String,
     pub exam: bool,
     pub cancelled: bool,
+    pub homework: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,6 +46,8 @@ struct ApiLesson {
     is_exam_lesson: bool,
     #[serde(default, rename = "timetableEntryType")]
     timetable_entry_type: String,
+    #[serde(default, rename = "hasHomework")]
+    has_homework: bool,
 }
 
 pub struct Tam {
@@ -176,6 +179,7 @@ impl TryFrom<ApiLesson> for Lesson {
             },
             exam: x.has_exam || x.is_exam_lesson,
             cancelled: x.timetable_entry_type_short == "cancel",
+            homework: x.has_homework,
         })
     }
 }
