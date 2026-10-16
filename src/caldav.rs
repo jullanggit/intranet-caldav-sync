@@ -3,15 +3,19 @@ use crate::{config, tam::Lesson};
 use anyhow::{Context, Result, bail};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Europe::Zurich;
-use icalendar::{Calendar, Component, Event, EventLike, EventStatus, Property};
+use icalendar::{
+    Calendar, CalendarDateTime, Component, DatePerhapsTime, Event, EventLike, EventStatus, Property,
+};
 use reqwest::{Client, Method};
 use std::collections::HashSet;
+use std::str::FromStr;
 
 pub struct CalDav {
     client: Client,
     url: String,
     username: String,
     password: String,
+    oldest: i64,
 }
 
 impl CalDav {
@@ -23,6 +27,7 @@ impl CalDav {
             url: config.caldav.calendar_url.trim_end_matches('/').to_owned(),
             username: config.caldav.username.clone(),
             password: config::secret(&config.caldav.password_file)?,
+            oldest: config::range(&config.sync)?.0,
         })
     }
 
@@ -51,6 +56,11 @@ impl CalDav {
                 && filename.ends_with(".ics")
                 && !desired.contains(filename)
             {
+                if let Some(start) = self.event_start(&href).await?
+                    && start < self.oldest
+                {
+                    continue;
+                }
                 self.client
                     .request(Method::DELETE, href.clone())
                     .basic_auth(&self.username, Some(&self.password))
@@ -61,6 +71,26 @@ impl CalDav {
             }
         }
         Ok(())
+    }
+
+    async fn event_start(&self, href: &str) -> Result<Option<i64>> {
+        let body = self
+            .client
+            .get(href)
+            .basic_auth(&self.username, Some(&self.password))
+            .send()
+            .await?
+            .error_for_status()
+            .with_context(|| format!("fetching event {href}"))?
+            .text()
+            .await?;
+        let calendar = Calendar::from_str(&body)
+            .map_err(|error| anyhow::anyhow!("parsing event {href}: {error}"))?;
+        let start = calendar
+            .components
+            .iter()
+            .find_map(|component| component.as_event().and_then(|event| event.get_start()));
+        Ok(start.as_ref().and_then(start_millis))
     }
 
     async fn list_event_urls(&self) -> Result<Vec<String>> {
@@ -92,6 +122,23 @@ impl CalDav {
             }
         }
         Ok(urls)
+    }
+}
+
+fn start_millis(start: &DatePerhapsTime) -> Option<i64> {
+    match start {
+        DatePerhapsTime::Date(date) => {
+            Some(date.and_hms_opt(0, 0, 0)?.and_utc().timestamp_millis())
+        }
+        DatePerhapsTime::DateTime(CalendarDateTime::Utc(datetime)) => {
+            Some(datetime.timestamp_millis())
+        }
+        DatePerhapsTime::DateTime(CalendarDateTime::Floating(datetime)) => {
+            Some(datetime.and_utc().timestamp_millis())
+        }
+        DatePerhapsTime::DateTime(CalendarDateTime::WithTimezone { date_time, .. }) => {
+            Some(date_time.and_utc().timestamp_millis())
+        }
     }
 }
 
