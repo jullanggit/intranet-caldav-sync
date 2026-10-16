@@ -2,6 +2,8 @@ mod caldav;
 mod config;
 mod tam;
 
+use std::{fs::File, io::BufReader};
+
 use anyhow::{Context, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Europe::Zurich;
@@ -9,6 +11,7 @@ use clap::Parser;
 use config::Config;
 use icalendar::{Calendar, Component, Event, EventLike, EventStatus, Property};
 use tam::{Lesson, Tam};
+use tokio::fs::{self};
 
 use crate::caldav::CalDav;
 
@@ -16,6 +19,8 @@ use crate::caldav::CalDav;
 struct Args {
     #[arg(short, long)]
     config: std::path::PathBuf,
+    #[arg(long)]
+    lessons: Option<std::path::PathBuf>,
     #[arg(short, long, default_value = "timetable.ics")]
     output: std::path::PathBuf,
 }
@@ -76,11 +81,23 @@ async fn main() -> Result<()> {
     let config: Config = serde_json::from_str(&config_text)?;
     config.validate()?;
 
-    let tam = Tam::new(&config)?;
-    let lessons = tam.fetch().await?;
-    if lessons.is_empty() {
-        anyhow::bail!("no timetable entries found");
-    }
+    let lessons: Vec<Lesson> = if let Some(path) = args.lessons {
+        serde_json::from_reader(BufReader::new(File::open(path)?))?
+    } else {
+        let tam = Tam::new(&config)?;
+        let lessons = tam.fetch().await?;
+        if lessons.is_empty() {
+            anyhow::bail!("no timetable entries found");
+        }
+
+        let _ = fs::write(
+            "/tmp/tam-intranet-lessons.json",
+            serde_json::to_string(&lessons)?,
+        )
+        .await;
+
+        lessons
+    };
 
     if let Ok(caldav) = CalDav::new(&config) {
         match caldav.sync(&lessons).await {

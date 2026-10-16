@@ -1,11 +1,11 @@
 use crate::config::{self, Config};
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use chrono::{NaiveDate, NaiveTime};
 use reqwest::Client;
 use scraper::{Html, Selector};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Lesson {
     pub id: u64,
     pub subject: Option<String>,
