@@ -116,11 +116,15 @@ fn event_calendar(lesson: &Lesson) -> Result<Calendar> {
         (None, Some(room)) => room.to_owned(),
         (None, None) => lesson.title.clone(),
     };
-    let summary = match (lesson.cancelled, lesson.exam) {
-        (true, true) => format!("CANCELLED EXAM: {summary}"),
-        (true, false) => format!("CANCELLED: {summary}"),
-        (false, true) => format!("EXAM: {summary}"),
-        (false, false) => summary,
+    let summary = match (lesson.cancelled, lesson.exam, lesson.homework) {
+        (true, true, false) => format!("CANCELLED EXAM: {summary}"),
+        (true, false, false) => format!("CANCELLED: {summary}"),
+        (false, true, false) => format!("EXAM: {summary}"),
+        (false, false, false) => summary,
+        (true, true, true) => format!("HW CANCELLED EXAM: {summary}"),
+        (true, false, true) => format!("HW CANCELLED: {summary}"),
+        (false, true, true) => format!("HW EXAM: {summary}"),
+        (false, false, true) => format!("HW: {summary}"),
     };
     let description = [
         (!lesson.teacher.is_empty()).then(|| format!("Teacher: {}", lesson.teacher.join(", "))),

@@ -1,3 +1,4 @@
+mod caldav;
 mod config;
 mod tam;
 
@@ -8,6 +9,8 @@ use clap::Parser;
 use config::Config;
 use icalendar::{Calendar, Component, Event, EventLike, EventStatus, Property};
 use tam::{Lesson, Tam};
+
+use crate::caldav::CalDav;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -77,6 +80,13 @@ async fn main() -> Result<()> {
     let lessons = tam.fetch().await?;
     if lessons.is_empty() {
         anyhow::bail!("no timetable entries found");
+    }
+
+    if let Ok(caldav) = CalDav::new(&config) {
+        match caldav.sync(&lessons).await {
+            Ok(()) => println!("Synced {} lessons to caldav", lessons.len()),
+            Err(e) => println!("Failed to sync lessons to caldav: {e}"),
+        }
     }
 
     let cal = build_calendar(&lessons)?;
