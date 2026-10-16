@@ -6,7 +6,7 @@ use chrono_tz::Europe::Zurich;
 use icalendar::{
     Calendar, CalendarDateTime, Component, DatePerhapsTime, Event, EventLike, EventStatus, Property,
 };
-use reqwest::{Client, Method};
+use reqwest::{Client, Method, Url};
 use std::collections::HashSet;
 use std::str::FromStr;
 
@@ -106,17 +106,19 @@ impl CalDav {
             .error_for_status()
             .context("listing CalDAV collection")?;
         let body = response.text().await?;
+        let base = Url::parse(&format!("{}/", self.url.trim_end_matches('/')))
+            .context("invalid calendar url")?;
         let mut urls = Vec::new();
         for open in ["<d:href>", "<D:href>", "<href>"] {
             let close = open.replace('<', "</");
             for part in body.split(open).skip(1) {
                 if let Some(href) = part.split(&close).next() {
                     if href.ends_with(".ics") {
-                        urls.push(if href.starts_with("http") {
-                            href.to_owned()
-                        } else {
-                            format!("{}{}", self.url.trim_end_matches('/'), href)
-                        });
+                        urls.push(
+                            base.join(href)
+                                .with_context(|| format!("invalid event href {href}"))?
+                                .to_string(),
+                        );
                     }
                 }
             }
