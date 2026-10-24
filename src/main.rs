@@ -2,7 +2,7 @@ mod caldav;
 mod config;
 mod tam;
 
-use std::{fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, process::exit};
 
 use anyhow::{Context, Result};
 use chrono::{NaiveDateTime, TimeZone, Utc};
@@ -99,19 +99,38 @@ async fn main() -> Result<()> {
         lessons
     };
 
-    if let Ok(caldav) = CalDav::new(&config) {
+    let mut failed = false;
+
+    if config.caldav.enable
+        && let Ok(caldav) = CalDav::new(&config)
+    {
         match caldav.sync(&lessons).await {
             Ok(()) => println!("Synced {} lessons to caldav", lessons.len()),
-            Err(e) => println!("Failed to sync lessons to caldav: {e}"),
+            Err(e) => {
+                failed = true;
+                println!("Failed to sync lessons to caldav: {e}");
+            }
         }
     }
 
-    let cal = build_calendar(&lessons)?;
-    tokio::fs::write(&args.output, cal.to_string()).await?;
-    println!(
-        "Saved {} lessons to {}",
-        lessons.len(),
-        args.output.display()
-    );
+    if config.ics.enable {
+        let cal = build_calendar(&lessons)?;
+        match tokio::fs::write(&args.output, cal.to_string()).await {
+            Ok(()) => println!(
+                "Saved {} lessons to {}",
+                lessons.len(),
+                args.output.display()
+            ),
+            Err(e) => {
+                failed = true;
+                println!("Failed to write lessons to ics: {e}");
+            }
+        }
+    }
+
+    if failed {
+        exit(1);
+    }
+
     Ok(())
 }

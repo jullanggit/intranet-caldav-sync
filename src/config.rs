@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use chrono::{Datelike, Duration, TimeZone};
 use chrono_tz::Europe::Zurich;
 use serde::Deserialize;
@@ -11,6 +11,7 @@ use std::{
 pub struct Config {
     pub tam: TamConfig,
     pub caldav: CalDavConfig,
+    pub ics: IcsConfig,
     #[serde(default)]
     pub sync: SyncConfig,
 }
@@ -28,9 +29,17 @@ pub struct TamConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct CalDavConfig {
+    /// Whether to sync timetable with caldav
+    pub enable: bool,
     pub calendar_url: String,
     pub username: String,
     pub password_file: PathBuf,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct IcsConfig {
+    /// Whether to write timetable to output ics file
+    pub enable: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]
